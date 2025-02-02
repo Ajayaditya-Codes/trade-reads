@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { TrendingUp } from "lucide-react";
+import SignUp from "./sign-up";
 
 export default function HeroSection() {
   return (
@@ -17,26 +16,15 @@ export default function HeroSection() {
         />
       </div>
       <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
-        <div className="mb-8 flex justify-center">
-          <div className="relative rounded-xl text-center font-bold px-1 sm:px-3 py-2 text-sm/6 text-gray-600 dark:text-gray-300 ring-1 ring-gray-900/10 dark:ring-gray-300/10 hover:ring-gray-900/20 hover:dark:ring-gray-300/20">
-            Quirk V2 is Here: Smarter, Faster, Better.
-          </div>
-        </div>
         <div className="text-center">
           <h1 className="text-balance text-6xl sm:text-7xl lg:text-8xl font-semibold tracking-tight">
-            the GitHub Automata
+            the Book Trade Platform
           </h1>
           <p className="mt-8 text-pretty text-2xl sm:text-3xl font-medium text-gray-500 dark:text-gray-100">
-            Transform your Project Management across GitHub, Slack and Asana
+            Your Next Favorite Book is just a Trade away!
           </p>
-          <div className="mt-10 flex items-center justify-center gap-x-6 gap-y-6 md:gap-y-0 flex-col md:flex-row">
-            <Link
-              href="/pricing"
-              prefetch={true}
-              className="text-xl hover:underline flex flex-row items-center justify-center gap-x-1 border md:border-0 rounded-xl w-[250px] md:w-fit py-2 border-[#8a00c4]"
-            >
-              Pricing and Plans <TrendingUp size={15} />
-            </Link>
+          <div className="mt-10 flex items-center justify-center">
+            <SignUp classname="w-[250px] md:w-fit" />
           </div>
         </div>
       </div>
