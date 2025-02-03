@@ -1,5 +1,5 @@
 import ExchangedSection from "@/components/global/library/exchanged-section";
-import ListingSection from "@/components/global/library/listing-sections";
+import ListingSection from "@/components/global/library/listing/listing-sections";
 import RequestsSection from "@/components/global/library/requests-section";
 import { Separator } from "@/components/ui/separator";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
