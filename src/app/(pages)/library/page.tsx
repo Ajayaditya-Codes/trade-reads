@@ -1,4 +1,3 @@
-import ExchangedSection from "@/components/global/library/exchanged-section";
 import ListingSection from "@/components/global/library/listing/listing-sections";
 import RequestsSection from "@/components/global/library/requests-section";
 import { Separator } from "@/components/ui/separator";
@@ -21,8 +20,6 @@ export default async function Library() {
       <RequestsSection />
       <Separator className="my-5" />
       <ListingSection />
-      <Separator className="my-5" />
-      <ExchangedSection />
       <Separator className="my-5" />
     </div>
   );

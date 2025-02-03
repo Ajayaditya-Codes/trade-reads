@@ -16,17 +16,21 @@ export const POST = async (req: NextRequest): Promise<NextResponse> => {
     );
   }
 
-  const { ISBN } = await req.json();
-  if (!ISBN) {
-    return NextResponse.json({ error: "ISBN is required" }, { status: 400 });
+  const { isbn } = await req.json();
+  console.log(isbn);
+  if (!isbn || typeof isbn !== "string") {
+    return NextResponse.json(
+      { error: "Valid ISBN is required" },
+      { status: 400 }
+    );
   }
 
   try {
-    const isbn = new Isbn();
-    const book = await isbn.resolve(ISBN);
+    const isbnInstance = new Isbn();
+    const book = await isbnInstance.resolve(isbn.trim());
 
-    if (!book) {
-      return NextResponse.json({ error: "Book not found" }, { status: 400 });
+    if (!book?.isbn) {
+      return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
     await db.insert(BooksTable).values({
@@ -39,9 +43,6 @@ export const POST = async (req: NextRequest): Promise<NextResponse> => {
       { status: 201 }
     );
   } catch {
-    return NextResponse.json(
-      { error: "Book not found or failed to be created" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Failed to add book" }, { status: 500 });
   }
 };

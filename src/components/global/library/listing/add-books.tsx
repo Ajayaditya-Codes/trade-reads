@@ -7,6 +7,7 @@ import { useState } from "react";
 
 export default function AddBook() {
   const [isbn, setIsbn] = useState("");
+
   const handler = async () => {
     if (!isbn.trim()) {
       toaster.error({
@@ -21,11 +22,12 @@ export default function AddBook() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ISBN: isbn }),
+      body: JSON.stringify({ isbn }),
     }).then(async (response) => {
       const data = await response.json();
-      setIsbn("");
       if (!response.ok) throw new Error(data.error || "Failed to add book.");
+      setIsbn("");
+      window.location.reload(); // Force refresh after successful book addition
     });
 
     toaster.promise(promise, {
@@ -49,7 +51,7 @@ export default function AddBook() {
       <Input
         placeholder="Enter ISBN No."
         className="w-[300px]"
-        type="number"
+        type="text"
         value={isbn}
         onChange={(e) => setIsbn(e.target.value)}
       />

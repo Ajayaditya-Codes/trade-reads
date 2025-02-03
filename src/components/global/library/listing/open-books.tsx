@@ -5,9 +5,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toaster } from "@/components/ui/toaster";
 import { Book } from "@/db/types";
 import Image from "next/image";
-import { Suspense, useState } from "react";
+import { useEffect, useState } from "react";
 
-// Fetch books once at the start of the program
+// Caching to avoid refetching unnecessarily
 let cachedBooks: Book[] | null = null;
 let cachedError: string | null = null;
 
@@ -16,25 +16,41 @@ async function fetchBooks() {
     return { books: cachedBooks, error: cachedError };
 
   try {
-    const res = await fetch("/api/fetch-books?state=open");
+    const res = await fetch("/api/fetch-books");
     if (!res.ok) throw new Error("Failed to fetch books");
 
     const data = await res.json();
     cachedBooks = data.books;
     return { books: cachedBooks, error: null };
-  } catch (err) {
+  } catch {
     cachedError = "Error loading books. Please try again.";
     return { books: null, error: cachedError };
   }
 }
 
-function BooksList({
-  books,
-  error,
-}: {
-  books: Book[] | null;
-  error: string | null;
-}) {
+export default function OpenBooks() {
+  const [books, setBooks] = useState<Book[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchBooks().then(({ books, error }) => {
+      setBooks(books);
+      setError(error);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="w-full flex flex-wrap gap-5 justify-center">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="w-[150px] h-[300px] rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
   if (error) {
     return <p className="max-w-[450px] text-center">{error}</p>;
   }
@@ -48,15 +64,16 @@ function BooksList({
     );
   }
 
-  const handler = async (id: number, title: string): Promise<void> => {
-    console.log(id, title);
+  return <BooksList books={books} />;
+}
+
+function BooksList({ books }: { books: Book[] }) {
+  const handleDelete = async (id: number, title: string): Promise<void> => {
     const promise = new Promise<void>(async (resolve, reject) => {
       try {
         const response = await fetch("/api/delete-book", {
           method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ bookID: id }),
         });
 
@@ -78,7 +95,7 @@ function BooksList({
       },
       error: (error: Error) => ({
         title: "Deletion Failed",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message,
       }),
       loading: {
         title: "Deleting Book...",
@@ -88,53 +105,34 @@ function BooksList({
 
     try {
       await promise;
+      window.location.reload();
     } catch {
       return;
     }
   };
 
   return (
-    <div className="w-full flex flex-row space-x-5 flex-grow overflow-y-scroll">
+    <div className="w-full overflow-y-scroll flex flex-wrap gap-5 justify-center">
       {books.map((book) => (
         <div
           key={book.id}
-          className="flex flex-col space-y-2 text-center min-h-[300px] w-fit"
+          className="flex flex-col space-y-2 text-center w-[150px]"
         >
           <Image
             src={book.thumbnail}
             alt={book.title}
             width={150}
             height={200}
-            className="flex flex-grow"
+            className="rounded-lg"
           />
           <Button
-            variant={"destructive"}
-            onClick={() => handler(book.id, book.title)}
+            variant="destructive"
+            onClick={() => handleDelete(book.id, book.title)}
           >
             Delete
           </Button>
         </div>
       ))}
-    </div>
-  );
-}
-
-export default function OpenBooks() {
-  const [books, setBooks] = useState<Book[] | null>(cachedBooks);
-  const [error, setError] = useState<string | null>(cachedError);
-
-  if (books === null && error === null) {
-    fetchBooks().then(({ books, error }) => {
-      setBooks(books);
-      setError(error);
-    });
-  }
-
-  return (
-    <div className="min-w-full text-lg flex flex-col min-h-[300px] my-5 justify-center items-center space-y-5">
-      <Suspense fallback={<Skeleton className="w-full h-full rounded-xl" />}>
-        <BooksList books={books} error={error} />
-      </Suspense>
     </div>
   );
 }

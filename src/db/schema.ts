@@ -1,9 +1,15 @@
-import { integer, pgTable, text } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, unique } from "drizzle-orm/pg-core";
 
-export const BooksTable = pgTable("Books", {
-  id: integer("ID").primaryKey().generatedAlwaysAsIdentity(),
-  isbn: text("ISBN").notNull(),
-  kindeId: text("KindeID").notNull(),
-  state: text("State").notNull().default("open"),
-  exchangeId: integer("ExchangeID"),
-});
+export const BooksTable = pgTable(
+  "Books",
+  {
+    id: integer("ID").primaryKey().generatedAlwaysAsIdentity(),
+    kindeId: text("KindeID").notNull(),
+    isbn: text("ISBN").notNull(),
+    exchangeIsbn: text("ExchangeISBN"),
+    state: text("State").notNull().default("open"),
+  },
+  (table) => ({
+    uniqueKindeIsbn: unique("unique_kinde_isbn").on(table.kindeId, table.isbn),
+  })
+);

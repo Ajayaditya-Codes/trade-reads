@@ -17,21 +17,37 @@ export const DELETE = async (req: NextRequest): Promise<NextResponse> => {
   }
 
   const { bookID } = await req.json();
+  const bookIdNumber = Number(bookID);
 
-  if (!bookID) {
-    return NextResponse.json(
-      { error: "Book ID not provided" },
-      { status: 400 }
-    );
+  if (!bookIdNumber || isNaN(bookIdNumber)) {
+    return NextResponse.json({ error: "Invalid Book ID" }, { status: 400 });
   }
 
   try {
-    await db
+    const deleted = await db
       .delete(BooksTable)
-      .where(and(eq(BooksTable.id, bookID), eq(BooksTable.state, "open")))
+      .where(
+        and(
+          eq(BooksTable.id, bookIdNumber),
+          eq(BooksTable.kindeId, id),
+          eq(BooksTable.state, "open")
+        )
+      )
       .execute();
-    return NextResponse.json({ message: "Book deleted successfully" });
-  } catch {
+
+    if (deleted.rowCount === 0) {
+      return NextResponse.json(
+        { error: "Book not found or not deletable" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: "Book deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error deleting book:", error);
     return NextResponse.json(
       { error: "Failed to delete book" },
       { status: 500 }
