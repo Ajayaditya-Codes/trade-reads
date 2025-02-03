@@ -30,47 +30,48 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       .select({
         isbn: BooksTable.isbn,
         id: BooksTable.id,
-        exchange: BooksTable.exchangeId,
+        exchangeIsbn: BooksTable.exchangeIsbn,
       })
       .from(BooksTable)
       .where(
         and(
           eq(BooksTable.state, state),
           eq(BooksTable.kindeId, id),
-          isNotNull(BooksTable.exchangeId)
+          isNotNull(BooksTable.exchangeIsbn)
         )
       );
 
     const isbn = new Isbn();
-    const tradesWithDetails = await Promise.all(
+
+    const resolvedTrades = await Promise.all(
       trades.map(async (trade) => {
-        const data = await isbn.resolve(trade.isbn);
-        const exchangeData = await isbn.resolve(trade.exchange as string);
+        const bookData = await isbn.resolve(trade.isbn);
+        const exchangeData = trade.exchangeIsbn
+          ? await isbn.resolve(trade.exchangeIsbn)
+          : null;
 
-        if (data && exchangeData) {
-          return [
-            {
-              id: trade.id,
-              title: data.title,
-              thumbnail: data.thumbnail || "",
-              isbn: trade.isbn,
-              genre: data.categories,
-            },
-            {
-              id: trade.id,
-              title: exchangeData.title,
-              thumbnail: exchangeData.thumbnail || "",
-              isbn: exchangeData.isbn,
-              genre: exchangeData.categories,
-            },
-          ];
-        }
+        if (!bookData || !exchangeData) return null;
 
-        return null;
+        return [
+          {
+            id: trade.id,
+            title: bookData.title,
+            thumbnail: bookData.thumbnail || "",
+            isbn: trade.isbn,
+            genre: bookData.categories || [],
+          },
+          {
+            id: trade.id,
+            title: exchangeData.title,
+            thumbnail: exchangeData.thumbnail || "",
+            isbn: trade.exchangeIsbn,
+            genre: exchangeData.categories || [],
+          },
+        ];
       })
     );
 
-    const validTrades = tradesWithDetails.filter(
+    const validTrades = resolvedTrades.filter(
       (trade): trade is Book[] => trade !== null
     );
 

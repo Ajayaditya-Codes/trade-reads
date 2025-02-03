@@ -43,7 +43,7 @@ export default function OpenBooks() {
 
   if (loading) {
     return (
-      <div className="w-full flex flex-wrap gap-5 justify-center">
+      <div className="w-full my-10 flex flex-wrap gap-5 justify-center">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="w-[150px] h-[300px] rounded-xl" />
         ))}
@@ -52,15 +52,22 @@ export default function OpenBooks() {
   }
 
   if (error) {
-    return <p className="max-w-[450px] text-center">{error}</p>;
+    return (
+      <div className="w-full h-[300px] my-10 justify-center flex flex-col items-center">
+        <p className="max-w-[450px] text-center">{error}</p>;
+      </div>
+    );
   }
 
   if (!books || books.length === 0) {
     return (
-      <h5 className="max-w-[450px] text-center">
-        Once you add books to your shelf, they'll appear here, ready for other
-        readers to discover. Start listing and connect with fellow book lovers!
-      </h5>
+      <div className="w-full h-[300px] my-10 justify-center flex flex-col items-center">
+        <h5 className="max-w-[450px] text-center">
+          Once you add books to your shelf, they'll appear here, ready for other
+          readers to discover. Start listing and connect with fellow book
+          lovers!
+        </h5>
+      </div>
     );
   }
 
@@ -112,7 +119,7 @@ function BooksList({ books }: { books: Book[] }) {
   };
 
   return (
-    <div className="w-full overflow-y-scroll flex flex-wrap gap-5 justify-center">
+    <div className="w-full overflow-y-scroll flex flex-wrap my-10 gap-5 justify-center">
       {books.map((book) => (
         <div
           key={book.id}

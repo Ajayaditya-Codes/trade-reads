@@ -24,16 +24,22 @@ export const DELETE = async (req: NextRequest): Promise<NextResponse> => {
   }
 
   try {
+    const data = await db
+      .select({ isbn: BooksTable.isbn })
+      .from(BooksTable)
+      .where(and(eq(BooksTable.id, bookIdNumber), eq(BooksTable.kindeId, id)));
+
     const deleted = await db
       .delete(BooksTable)
-      .where(
-        and(
-          eq(BooksTable.id, bookIdNumber),
-          eq(BooksTable.kindeId, id),
-          eq(BooksTable.state, "open")
-        )
-      )
+      .where(and(eq(BooksTable.id, bookIdNumber), eq(BooksTable.kindeId, id)))
       .execute();
+
+    data[0].isbn === null &&
+      (await db
+        .update(BooksTable)
+        .set({ exchangeIsbn: null })
+        .where(eq(BooksTable.exchangeIsbn, data[0].isbn))
+        .execute());
 
     if (deleted.rowCount === 0) {
       return NextResponse.json(

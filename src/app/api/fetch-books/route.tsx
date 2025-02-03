@@ -22,7 +22,7 @@ export async function GET(): Promise<NextResponse> {
     const books = await db
       .select({ isbn: BooksTable.isbn, id: BooksTable.id })
       .from(BooksTable)
-      .where(and(eq(BooksTable.state, "open"), eq(BooksTable.kindeId, id)));
+      .where(eq(BooksTable.kindeId, id));
 
     if (books.length === 0) {
       return NextResponse.json({ books: [] }, { status: 200 });

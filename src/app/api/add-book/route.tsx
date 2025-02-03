@@ -17,7 +17,6 @@ export const POST = async (req: NextRequest): Promise<NextResponse> => {
   }
 
   const { isbn } = await req.json();
-  console.log(isbn);
   if (!isbn || typeof isbn !== "string") {
     return NextResponse.json(
       { error: "Valid ISBN is required" },

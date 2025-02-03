@@ -1,5 +1,6 @@
+import ClosedSection from "@/components/global/library/closed/closed-section";
 import ListingSection from "@/components/global/library/listing/listing-sections";
-import RequestsSection from "@/components/global/library/requests-section";
+import RequestsSection from "@/components/global/library/requests/requests-section";
 import { Separator } from "@/components/ui/separator";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 
@@ -21,6 +22,7 @@ export default async function Library() {
       <Separator className="my-5" />
       <ListingSection />
       <Separator className="my-5" />
+      <ClosedSection />
     </div>
   );
 }
