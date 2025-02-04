@@ -3,7 +3,7 @@ import { Books } from "@/db/schema";
 import { Book } from "@/db/types";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import Isbn from "@library-pals/isbn";
-import { and, eq } from "drizzle-orm";
+import { eq, and, not } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function GET(): Promise<NextResponse> {
@@ -22,7 +22,7 @@ export async function GET(): Promise<NextResponse> {
     const books = await db
       .select({ isbn: Books.isbn, id: Books.id })
       .from(Books)
-      .where(and(eq(Books.kindeId, id), eq(Books.exchanged, false)));
+      .where(and(not(eq(Books.kindeId, id)), eq(Books.exchanged, false)));
 
     if (books.length === 0) {
       return NextResponse.json({ books: [] }, { status: 200 });
@@ -48,7 +48,9 @@ export async function GET(): Promise<NextResponse> {
       })
     );
 
-    const validBooks = booksWithDetails.filter((book: any) => book !== null);
+    const validBooks = booksWithDetails.filter(
+      (book): book is Book => book !== null
+    );
 
     return NextResponse.json({ books: validBooks }, { status: 200 });
   } catch (error) {

@@ -1,7 +1,7 @@
 import { db } from "@/db/drizzle";
-import { BooksTable } from "@/db/schema";
+import { Books } from "@/db/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export const POST = async (req: NextRequest): Promise<NextResponse> => {
@@ -25,26 +25,13 @@ export const POST = async (req: NextRequest): Promise<NextResponse> => {
       );
     }
 
-    const result = await db
-      .update(BooksTable)
-      .set({ exchangeIsbn: null, state: "open" })
-      .where(
-        and(
-          or(
-            eq(BooksTable.exchangeIsbn, isbn1),
-            eq(BooksTable.exchangeIsbn, isbn2)
-          ),
-          eq(BooksTable.state, "requested")
-        )
-      )
+    await db
+      .update(Books)
+      .set({
+        exchangeIsbn: sql`array_remove(${Books.exchangeIsbn}, ${isbn2})`,
+      })
+      .where(and(eq(Books.isbn, isbn1), eq(Books.kindeId, id)))
       .execute();
-
-    if (!result.rowCount) {
-      return NextResponse.json(
-        { error: "No matching trades found or already updated" },
-        { status: 404 }
-      );
-    }
 
     return NextResponse.json(
       { success: "Trade request canceled successfully" },

@@ -1,7 +1,7 @@
 import { db } from "@/db/drizzle";
-import { BooksTable } from "@/db/schema";
+import { Books } from "@/db/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export const DELETE = async (req: NextRequest): Promise<NextResponse> => {
@@ -25,28 +25,23 @@ export const DELETE = async (req: NextRequest): Promise<NextResponse> => {
 
   try {
     const data = await db
-      .select({ isbn: BooksTable.isbn })
-      .from(BooksTable)
-      .where(and(eq(BooksTable.id, bookIdNumber), eq(BooksTable.kindeId, id)));
+      .select({ isbn: Books.isbn })
+      .from(Books)
+      .where(and(eq(Books.id, bookIdNumber), eq(Books.kindeId, id)));
 
-    const deleted = await db
-      .delete(BooksTable)
-      .where(and(eq(BooksTable.id, bookIdNumber), eq(BooksTable.kindeId, id)))
+    await db
+      .delete(Books)
+      .where(and(eq(Books.id, bookIdNumber), eq(Books.kindeId, id)))
       .execute();
 
-    data[0].isbn === null &&
+    data[0].isbn !== null &&
       (await db
-        .update(BooksTable)
-        .set({ exchangeIsbn: null })
-        .where(eq(BooksTable.exchangeIsbn, data[0].isbn))
+        .update(Books)
+        .set({
+          exchangeIsbn: sql`array_remove(${Books.exchangeIsbn}, ${data[0].isbn})`,
+        })
+        .where(sql`${Books.exchangeIsbn} @> ARRAY[${data[0].isbn}]`)
         .execute());
-
-    if (deleted.rowCount === 0) {
-      return NextResponse.json(
-        { error: "Book not found or not deletable" },
-        { status: 404 }
-      );
-    }
 
     return NextResponse.json(
       { message: "Book deleted successfully" },

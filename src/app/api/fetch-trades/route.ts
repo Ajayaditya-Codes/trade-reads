@@ -1,9 +1,9 @@
 import { db } from "@/db/drizzle";
-import { BooksTable } from "@/db/schema";
+import { Books } from "@/db/schema";
 import { Book } from "@/db/types";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import Isbn from "@library-pals/isbn";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq, and, isNotNull, not } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -28,16 +28,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const trades = await db
       .select({
-        isbn: BooksTable.isbn,
-        id: BooksTable.id,
-        exchangeIsbn: BooksTable.exchangeIsbn,
+        isbn: Books.isbn,
+        id: Books.id,
+        exchangeIsbn: Books.exchangeIsbn,
       })
-      .from(BooksTable)
+      .from(Books)
       .where(
         and(
-          eq(BooksTable.state, state),
-          eq(BooksTable.kindeId, id),
-          isNotNull(BooksTable.exchangeIsbn)
+          eq(Books.exchanged, state === "true"),
+          eq(Books.kindeId, id),
+          not(eq(Books.exchangeIsbn, []))
         )
       );
 
@@ -45,35 +45,48 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     const resolvedTrades = await Promise.all(
       trades.map(async (trade) => {
-        const bookData = await isbn.resolve(trade.isbn);
-        const exchangeData = trade.exchangeIsbn
-          ? await isbn.resolve(trade.exchangeIsbn)
-          : null;
+        try {
+          const userBookData = await isbn.resolve(trade.isbn);
+          if (!userBookData) return null;
 
-        if (!bookData || !exchangeData) return null;
-
-        return [
-          {
+          const userBook: Book = {
             id: trade.id,
-            title: bookData.title,
-            thumbnail: bookData.thumbnail || "",
+            title: userBookData.title,
+            thumbnail: userBookData.thumbnail || "",
             isbn: trade.isbn,
-            genre: bookData.categories || [],
-          },
-          {
-            id: trade.id,
-            title: exchangeData.title,
-            thumbnail: exchangeData.thumbnail || "",
-            isbn: trade.exchangeIsbn,
-            genre: exchangeData.categories || [],
-          },
-        ];
+            genre: userBookData.categories || [],
+          };
+
+          const exchangeBooks = await Promise.all(
+            trade.exchangeIsbn.map(async (exchangeIsbn: string) => {
+              try {
+                const exchangeBookData = await isbn.resolve(exchangeIsbn);
+                return exchangeBookData
+                  ? {
+                      id: trade.id,
+                      title: exchangeBookData.title,
+                      thumbnail: exchangeBookData.thumbnail || "",
+                      isbn: exchangeIsbn,
+                      genre: exchangeBookData.categories || [],
+                    }
+                  : null;
+              } catch {
+                return null;
+              }
+            })
+          );
+
+          return {
+            userBook,
+            exchangeBooks: exchangeBooks.filter((book) => book !== null),
+          };
+        } catch {
+          return null;
+        }
       })
     );
 
-    const validTrades = resolvedTrades.filter(
-      (trade): trade is Book[] => trade !== null
-    );
+    const validTrades = resolvedTrades.filter((trade) => trade !== null);
 
     return NextResponse.json({ trades: validTrades }, { status: 200 });
   } catch (error) {

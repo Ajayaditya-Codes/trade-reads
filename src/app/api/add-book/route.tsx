@@ -2,7 +2,7 @@ import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import Isbn from "@library-pals/isbn";
 import { db } from "@/db/drizzle";
-import { BooksTable } from "@/db/schema";
+import { Books } from "@/db/schema";
 
 export const POST = async (req: NextRequest): Promise<NextResponse> => {
   const { getUser } = getKindeServerSession();
@@ -32,7 +32,7 @@ export const POST = async (req: NextRequest): Promise<NextResponse> => {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    await db.insert(BooksTable).values({
+    await db.insert(Books).values({
       isbn: book.isbn,
       kindeId: id,
     });
