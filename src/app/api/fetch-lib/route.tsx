@@ -1,6 +1,5 @@
 import { db } from "@/db/drizzle";
 import { Books } from "@/db/schema";
-import { Book } from "@/db/types";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import Isbn from "@library-pals/isbn";
 import { eq, and, not } from "drizzle-orm";
@@ -28,28 +27,32 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ books: [] }, { status: 200 });
     }
 
-    const isbn = new Isbn();
+    const isbnResolver = new Isbn();
+
     const booksWithDetails = await Promise.all(
       books.map(async (book) => {
         try {
-          const data = await isbn.resolve(book.isbn);
-          return data
-            ? {
-                id: book.id,
-                title: data.title,
-                thumbnail: data.thumbnail || "",
-                isbn: book.isbn,
-                genre: data.categories || [],
-              }
-            : null;
-        } catch {
+          const data = await isbnResolver.resolve(book.isbn);
+
+          return {
+            id: book.id,
+            title: data?.title || "Unknown Title",
+            thumbnail: data?.thumbnail || "",
+            isbn: book.isbn,
+            genre: data?.categories || [],
+          };
+        } catch (error) {
+          console.error(
+            `Failed to fetch details for ISBN: ${book.isbn}`,
+            error
+          );
           return null;
         }
       })
     );
 
     const validBooks = booksWithDetails.filter(
-      (book): book is Book => book !== null
+      (book): book is NonNullable<typeof book> => book !== null
     );
 
     return NextResponse.json({ books: validBooks }, { status: 200 });

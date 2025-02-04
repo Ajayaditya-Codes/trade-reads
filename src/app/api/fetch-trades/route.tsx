@@ -3,7 +3,7 @@ import { Books } from "@/db/schema";
 import { Book } from "@/db/types";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import Isbn from "@library-pals/isbn";
-import { eq, and, isNotNull, not } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -37,40 +37,52 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         and(
           eq(Books.exchanged, state === "true"),
           eq(Books.kindeId, id),
-          not(eq(Books.exchangeIsbn, []))
+          sql`${Books.exchangeIsbn} IS NOT NULL AND cardinality(${Books.exchangeIsbn}) > 0`
         )
       );
 
-    const isbn = new Isbn();
+    if (trades.length === 0) {
+      return NextResponse.json({ trades: [] }, { status: 200 });
+    }
+
+    const isbnResolver = new Isbn();
 
     const resolvedTrades = await Promise.all(
       trades.map(async (trade) => {
         try {
-          const userBookData = await isbn.resolve(trade.isbn);
+          const userBookData = await isbnResolver.resolve(trade.isbn);
           if (!userBookData) return null;
 
           const userBook: Book = {
             id: trade.id,
-            title: userBookData.title,
+            title: userBookData.title || "Unknown Title",
             thumbnail: userBookData.thumbnail || "",
             isbn: trade.isbn,
             genre: userBookData.categories || [],
           };
 
+          if (!Array.isArray(trade.exchangeIsbn)) return null;
+
           const exchangeBooks = await Promise.all(
             trade.exchangeIsbn.map(async (exchangeIsbn: string) => {
               try {
-                const exchangeBookData = await isbn.resolve(exchangeIsbn);
+                const exchangeBookData = await isbnResolver.resolve(
+                  exchangeIsbn
+                );
                 return exchangeBookData
                   ? {
                       id: trade.id,
-                      title: exchangeBookData.title,
+                      title: exchangeBookData.title || "Unknown Title",
                       thumbnail: exchangeBookData.thumbnail || "",
                       isbn: exchangeIsbn,
                       genre: exchangeBookData.categories || [],
                     }
                   : null;
-              } catch {
+              } catch (error) {
+                console.error(
+                  `Failed to fetch details for ISBN: ${exchangeIsbn}`,
+                  error
+                );
                 return null;
               }
             })
@@ -80,7 +92,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             userBook,
             exchangeBooks: exchangeBooks.filter((book) => book !== null),
           };
-        } catch {
+        } catch (error) {
+          console.error(
+            `Error resolving book details for ISBN: ${trade.isbn}`,
+            error
+          );
           return null;
         }
       })

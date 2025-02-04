@@ -7,10 +7,7 @@ export const Books = pgTable(
     id: integer("ID").primaryKey().generatedAlwaysAsIdentity(),
     kindeId: text("KindeID").notNull(),
     isbn: text("ISBN").notNull(),
-    exchangeIsbn: text("ExchangeISBN")
-      .array()
-      .notNull()
-      .default(sql`ARRAY[]::text[]`),
+    exchangeIsbn: text("ExchangeISBN").array().notNull().default([]),
     exchanged: boolean("Exchanged").notNull().default(false),
   },
   (table) => ({

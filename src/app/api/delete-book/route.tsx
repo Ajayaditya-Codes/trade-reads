@@ -16,32 +16,25 @@ export const DELETE = async (req: NextRequest): Promise<NextResponse> => {
     );
   }
 
-  const { bookID } = await req.json();
-  const bookIdNumber = Number(bookID);
+  const { isbn } = await req.json();
 
-  if (!bookIdNumber || isNaN(bookIdNumber)) {
-    return NextResponse.json({ error: "Invalid Book ID" }, { status: 400 });
+  if (!isbn) {
+    return NextResponse.json({ error: "Invalid Book ISBN" }, { status: 400 });
   }
 
   try {
-    const data = await db
-      .select({ isbn: Books.isbn })
-      .from(Books)
-      .where(and(eq(Books.id, bookIdNumber), eq(Books.kindeId, id)));
-
     await db
       .delete(Books)
-      .where(and(eq(Books.id, bookIdNumber), eq(Books.kindeId, id)))
+      .where(and(eq(Books.isbn, isbn), eq(Books.kindeId, id)))
       .execute();
 
-    data[0].isbn !== null &&
-      (await db
-        .update(Books)
-        .set({
-          exchangeIsbn: sql`array_remove(${Books.exchangeIsbn}, ${data[0].isbn})`,
-        })
-        .where(sql`${Books.exchangeIsbn} @> ARRAY[${data[0].isbn}]`)
-        .execute());
+    await db
+      .update(Books)
+      .set({
+        exchangeIsbn: sql`array_remove(${Books.exchangeIsbn}, ${isbn})`,
+      })
+      .where(sql`${Books.exchangeIsbn} @> ARRAY[${isbn}]`)
+      .execute();
 
     return NextResponse.json(
       { message: "Book deleted successfully" },
