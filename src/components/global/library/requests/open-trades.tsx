@@ -15,10 +15,11 @@ async function fetchTrades() {
     return { trades: cachedTrades, error: cachedError };
 
   try {
-    const res = await fetch("/api/fetch-trades?state=requested");
+    const res = await fetch("/api/fetch-trades?state=false");
     if (!res.ok) throw new Error("Failed to fetch trades");
 
     const data = await res.json();
+    console.log(data);
     cachedTrades = data.trades;
     return { trades: cachedTrades, error: null };
   } catch {
@@ -158,45 +159,51 @@ export default function OpenTrades() {
   return <TradesList trades={trades} />;
 }
 
-function TradesList({ trades }: { trades: Book[][] }) {
+function TradesList({ trades }: { trades: any[] }) {
   return (
-    <div className="w-full overflow-y-scroll my-10 flex flex-wrap gap-5 justify-center">
-      {trades.map((books) => (
-        <div
-          key={books[0].id}
-          className="flex flex-col space-y-2 text-center w-fit"
-        >
-          <div className="flex justify-between">
-            <div key={books[0].id} className="flex flex-col items-center">
+    <div className="w-full overflow-y-auto my-10 flex flex-wrap gap-5 justify-center">
+      {trades.map((trade) =>
+        trade.exchangeBooks.map((exchangeBook: Book) => (
+          <div
+            key={`${trade.userBook.id}-${exchangeBook.id}`}
+            className="flex flex-col space-y-3"
+          >
+            <div className="flex flex-row">
               <Image
-                src={books[0].thumbnail}
-                alt={books[0].title}
+                src={trade.userBook.thumbnail}
+                alt={trade.userBook.title}
                 width={150}
                 height={200}
                 className="rounded-tl-lg rounded-bl-lg"
               />
-            </div>
-            <div key={books[1].id} className="flex flex-col items-center">
+
               <Image
-                src={books[1].thumbnail}
-                alt={books[1].title}
+                src={exchangeBook.thumbnail}
+                alt={exchangeBook.title}
                 width={150}
                 height={200}
                 className="rounded-tr-lg rounded-br-lg"
               />
             </div>
+
+            <Button
+              onClick={() =>
+                acceptHandler(trade.userBook.isbn, exchangeBook.isbn)
+              }
+            >
+              Accept
+            </Button>
+            <Button
+              onClick={() =>
+                deleteHandler(trade.userBook.isbn, exchangeBook.isbn)
+              }
+              variant="destructive"
+            >
+              Decline
+            </Button>
           </div>
-          <Button onClick={() => acceptHandler(books[0].isbn, books[1].isbn)}>
-            Accept
-          </Button>
-          <Button
-            onClick={() => deleteHandler(books[0].isbn, books[1].isbn)}
-            variant={"destructive"}
-          >
-            Decline
-          </Button>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }

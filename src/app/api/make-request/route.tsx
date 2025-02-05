@@ -4,13 +4,13 @@ import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
-export const POST = async (req: NextRequest): Promise<NextResponse> => {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { getUser } = getKindeServerSession();
     const kindeUser = await getUser();
-    const id = kindeUser?.id;
+    const userId = kindeUser?.id;
 
-    if (!id) {
+    if (!userId) {
       return NextResponse.json(
         { error: "User not authenticated" },
         { status: 401 }
@@ -18,9 +18,10 @@ export const POST = async (req: NextRequest): Promise<NextResponse> => {
     }
 
     const { userBookID, exchangeBookID } = await req.json();
+
     if (!userBookID || !exchangeBookID) {
       return NextResponse.json(
-        { error: "Valid book IDs are required" },
+        { error: "Both ISBNs are required" },
         { status: 400 }
       );
     }
@@ -28,20 +29,20 @@ export const POST = async (req: NextRequest): Promise<NextResponse> => {
     await db
       .update(Books)
       .set({
-        exchangeId: sql`array_remove(${Books.exchangeId}, ${exchangeBookID})`,
+        exchangeId: sql`array_append(${Books.exchangeId}, ${exchangeBookID})`,
       })
-      .where(and(eq(Books.id, userBookID), eq(Books.kindeId, id)))
+      .where(eq(Books.id, userBookID))
       .execute();
 
     return NextResponse.json(
-      { success: "Trade request canceled successfully" },
+      { success: "Trade request submitted successfully" },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error canceling trade:", error);
+    console.error("Error making trade request:", error);
     return NextResponse.json(
-      { error: "Failed to cancel trade request" },
+      { error: "Failed to process trade request" },
       { status: 500 }
     );
   }
-};
+}

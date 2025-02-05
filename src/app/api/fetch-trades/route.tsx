@@ -3,7 +3,7 @@ import { Books } from "@/db/schema";
 import { Book } from "@/db/types";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import Isbn from "@library-pals/isbn";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -30,14 +30,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       .select({
         isbn: Books.isbn,
         id: Books.id,
-        exchangeIsbn: Books.exchangeIsbn,
+        exchangeId: Books.exchangeId,
       })
       .from(Books)
       .where(
         and(
           eq(Books.exchanged, state === "true"),
           eq(Books.kindeId, id),
-          sql`${Books.exchangeIsbn} IS NOT NULL AND cardinality(${Books.exchangeIsbn}) > 0`
+          sql`array_length(${Books.exchangeId}, 1) > 0`
         )
       );
 
@@ -61,26 +61,34 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             genre: userBookData.categories || [],
           };
 
-          if (!Array.isArray(trade.exchangeIsbn)) return null;
+          if (!Array.isArray(trade.exchangeId)) return null;
+
+          const exchangeBooksData = await db
+            .select({
+              id: Books.id,
+              isbn: Books.isbn,
+            })
+            .from(Books)
+            .where(inArray(Books.id, trade.exchangeId));
 
           const exchangeBooks = await Promise.all(
-            trade.exchangeIsbn.map(async (exchangeIsbn: string) => {
+            exchangeBooksData.map(async (exchangeBook) => {
               try {
                 const exchangeBookData = await isbnResolver.resolve(
-                  exchangeIsbn
+                  exchangeBook.isbn
                 );
                 return exchangeBookData
                   ? {
-                      id: trade.id,
+                      id: exchangeBook.id, // Correct ID
                       title: exchangeBookData.title || "Unknown Title",
                       thumbnail: exchangeBookData.thumbnail || "",
-                      isbn: exchangeIsbn,
+                      isbn: exchangeBook.isbn,
                       genre: exchangeBookData.categories || [],
                     }
                   : null;
               } catch (error) {
                 console.error(
-                  `Failed to fetch details for ISBN: ${exchangeIsbn}`,
+                  `Failed to fetch details for ISBN: ${exchangeBook.isbn}`,
                   error
                 );
                 return null;

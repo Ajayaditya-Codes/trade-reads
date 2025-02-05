@@ -17,18 +17,24 @@ export const POST = async (req: NextRequest): Promise<NextResponse> => {
       );
     }
 
-    const { isbn1, isbn2 } = await req.json();
-    if (!isbn1 || !isbn2) {
+    const { userBookID, exchangeBookID } = await req.json();
+    if (!userBookID || !exchangeBookID) {
       return NextResponse.json(
-        { error: "Valid ISBNs are required" },
+        { error: "Valid book IDs are required" },
         { status: 400 }
       );
     }
 
     await db
       .update(Books)
-      .set({ exchanged: true, exchangeIsbn: [isbn2] })
-      .where(and(eq(Books.isbn, isbn1), eq(Books.kindeId, id)))
+      .set({ exchanged: true, exchangeId: [exchangeBookID] })
+      .where(and(eq(Books.id, userBookID), eq(Books.kindeId, id)))
+      .execute();
+
+    await db
+      .update(Books)
+      .set({ exchanged: true, exchangeId: [userBookID] })
+      .where(eq(Books.id, exchangeBookID))
       .execute();
 
     return NextResponse.json(
