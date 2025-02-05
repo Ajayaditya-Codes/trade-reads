@@ -17,7 +17,7 @@ import { toaster } from "@/components/ui/toaster";
 let cachedBooks: Book[] | null = null;
 let cachedError: string | null = null;
 
-async function fetchBooks() {
+async function fetchAvailableBooks() {
   if (cachedBooks || cachedError)
     return { books: cachedBooks, error: cachedError };
 
@@ -35,13 +35,13 @@ async function fetchBooks() {
 }
 
 export default function OpenBooks() {
-  const [books, setBooks] = useState<Book[] | null>(null);
+  const [availableBooks, setAvailableBooks] = useState<Book[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchBooks().then(({ books, error }) => {
-      setBooks(books);
+    fetchAvailableBooks().then(({ books, error }) => {
+      setAvailableBooks(books);
       setError(error);
       setLoading(false);
     });
@@ -69,7 +69,7 @@ export default function OpenBooks() {
     );
   }
 
-  if (!books || books.length === 0) {
+  if (!availableBooks || availableBooks.length === 0) {
     return (
       <div className="w-full h-[300px] my-10 flex flex-col items-center justify-center">
         <h5 className="max-w-[450px] text-center text-gray-500">
@@ -81,13 +81,13 @@ export default function OpenBooks() {
     );
   }
 
-  return <BooksList books={books} />;
+  return <BookExchangeList availableBooks={availableBooks} />;
 }
 
-function BooksList({ books }: { books: Book[] }) {
+function BookExchangeList({ availableBooks }: { availableBooks: Book[] }) {
   const [userBooks, setUserBooks] = useState<Book[]>([]);
   const [selectedTrades, setSelectedTrades] = useState<{
-    [isbn: string]: string | null;
+    [bookID: number]: number | null;
   }>({});
 
   useEffect(() => {
@@ -105,17 +105,20 @@ function BooksList({ books }: { books: Book[] }) {
     fetchUserBooks();
   }, []);
 
-  const handleTradeSelect = (isbn: string, selectedIsbn: string) => {
-    setSelectedTrades((prev) => ({ ...prev, [isbn]: selectedIsbn }));
+  const handleTradeSelect = (bookID: number, selectedBookID: number) => {
+    setSelectedTrades((prev) => ({ ...prev, [bookID]: selectedBookID }));
   };
 
-  const handler = async (isbn1: string, isbn2: string) => {
+  const handleTradeRequest = async (
+    selectedBookID: number,
+    userBookID: number
+  ) => {
     const promise = fetch("/api/make-request", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ isbn1, isbn2 }),
+      body: JSON.stringify({ userBookID, exchangeBookID: selectedBookID }),
     }).then(async (response) => {
       const data = await response.json();
       if (!response.ok)
@@ -140,7 +143,7 @@ function BooksList({ books }: { books: Book[] }) {
 
   return (
     <div className="w-fit mx-auto my-10 grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-      {books.map((book) => (
+      {availableBooks.map((book) => (
         <div
           key={book.id}
           className="flex flex-col items-center space-y-2 text-center w-full max-w-[200px] mx-auto"
@@ -154,14 +157,16 @@ function BooksList({ books }: { books: Book[] }) {
           />
           {userBooks.length > 0 && (
             <Select
-              onValueChange={(value) => handleTradeSelect(book.isbn, value)}
+              onValueChange={(value) =>
+                handleTradeSelect(book.id, Number(value))
+              }
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Choose a book to trade" />
               </SelectTrigger>
               <SelectContent>
                 {userBooks.map((userBook) => (
-                  <SelectItem key={userBook.isbn} value={userBook.isbn}>
+                  <SelectItem key={userBook.id} value={String(userBook.id)}>
                     {userBook.title}
                   </SelectItem>
                 ))}
@@ -171,9 +176,9 @@ function BooksList({ books }: { books: Book[] }) {
 
           <Button
             className="w-full mt-2"
-            disabled={!selectedTrades[book.isbn]}
+            disabled={!selectedTrades[book.id]}
             onClick={() =>
-              handler(book.isbn, selectedTrades[book.isbn] as string)
+              handleTradeRequest(book.id, selectedTrades[book.id] as number)
             }
           >
             Request Trade

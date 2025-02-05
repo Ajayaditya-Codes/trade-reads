@@ -79,7 +79,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
                 );
                 return exchangeBookData
                   ? {
-                      id: exchangeBook.id, // Correct ID
+                      id: exchangeBook.id,
                       title: exchangeBookData.title || "Unknown Title",
                       thumbnail: exchangeBookData.thumbnail || "",
                       isbn: exchangeBook.isbn,

@@ -75,13 +75,16 @@ export default function OpenBooks() {
 }
 
 function BooksList({ books }: { books: Book[] }) {
-  const handleDelete = async (isbn: string, title: string): Promise<void> => {
+  const handleDelete = async (
+    book_id: number,
+    title: string
+  ): Promise<void> => {
     const promise = new Promise<void>(async (resolve, reject) => {
       try {
         const response = await fetch("/api/delete-book", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isbn }),
+          body: JSON.stringify({ book_id }),
         });
 
         if (response.ok) {
@@ -119,7 +122,7 @@ function BooksList({ books }: { books: Book[] }) {
   };
 
   return (
-    <div className="w-full overflow-y-scroll flex flex-wrap my-10 gap-5 justify-center">
+    <div className="w-full overflow-auto flex flex-wrap my-10 gap-5 justify-center">
       {books.map((book) => (
         <div
           key={book.id}
@@ -134,7 +137,7 @@ function BooksList({ books }: { books: Book[] }) {
           />
           <Button
             variant="destructive"
-            onClick={() => handleDelete(book.isbn, book.title)}
+            onClick={() => handleDelete(book.id, book.title)}
           >
             Delete
           </Button>

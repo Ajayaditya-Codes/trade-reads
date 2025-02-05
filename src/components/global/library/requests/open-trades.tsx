@@ -7,7 +7,7 @@ import { Book } from "@/db/types";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
-let cachedTrades: Book[][] | null = null;
+let cachedTrades: { userBook: Book; exchangeBooks: Book[] }[] | null = null;
 let cachedError: string | null = null;
 
 async function fetchTrades() {
@@ -19,7 +19,6 @@ async function fetchTrades() {
     if (!res.ok) throw new Error("Failed to fetch trades");
 
     const data = await res.json();
-    console.log(data);
     cachedTrades = data.trades;
     return { trades: cachedTrades, error: null };
   } catch {
@@ -28,13 +27,16 @@ async function fetchTrades() {
   }
 }
 
-const deleteHandler = async (isbn1: string, isbn2: string): Promise<void> => {
+const deleteHandler = async (
+  userBookID: number,
+  exchangeBookID: number
+): Promise<void> => {
   const promise = new Promise<void>(async (resolve, reject) => {
     try {
       const response = await fetch("/api/decline-trade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isbn1, isbn2 }),
+        body: JSON.stringify({ userBookID, exchangeBookID }),
       });
 
       if (response.ok) {
@@ -71,13 +73,16 @@ const deleteHandler = async (isbn1: string, isbn2: string): Promise<void> => {
   }
 };
 
-const acceptHandler = async (isbn1: string, isbn2: string): Promise<void> => {
+const acceptHandler = async (
+  userBookID: number,
+  exchangeBookID: number
+): Promise<void> => {
   const promise = new Promise<void>(async (resolve, reject) => {
     try {
       const response = await fetch("/api/accept-trade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isbn1, isbn2 }),
+        body: JSON.stringify({ userBookID, exchangeBookID }),
       });
 
       if (response.ok) {
@@ -159,7 +164,11 @@ export default function OpenTrades() {
   return <TradesList trades={trades} />;
 }
 
-function TradesList({ trades }: { trades: any[] }) {
+function TradesList({
+  trades,
+}: {
+  trades: { userBook: Book; exchangeBooks: Book[] }[];
+}) {
   return (
     <div className="w-full overflow-y-auto my-10 flex flex-wrap gap-5 justify-center">
       {trades.map((trade) =>
@@ -187,16 +196,12 @@ function TradesList({ trades }: { trades: any[] }) {
             </div>
 
             <Button
-              onClick={() =>
-                acceptHandler(trade.userBook.isbn, exchangeBook.isbn)
-              }
+              onClick={() => acceptHandler(trade.userBook.id, exchangeBook.id)}
             >
               Accept
             </Button>
             <Button
-              onClick={() =>
-                deleteHandler(trade.userBook.isbn, exchangeBook.isbn)
-              }
+              onClick={() => deleteHandler(trade.userBook.id, exchangeBook.id)}
               variant="destructive"
             >
               Decline

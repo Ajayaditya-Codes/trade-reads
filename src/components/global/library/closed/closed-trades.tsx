@@ -1,13 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toaster } from "@/components/ui/toaster";
 import { Book } from "@/db/types";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
-let cachedTrades: Book[][] | null = null;
+let cachedTrades: { userBook: Book; exchangeBooks: Book[] }[] | null = null;
 let cachedError: string | null = null;
 
 async function fetchTrades() {
@@ -72,11 +70,15 @@ export default function ClosedTrades() {
   return <TradesList trades={trades} />;
 }
 
-function TradesList({ trades }: { trades: any[] }) {
+function TradesList({
+  trades,
+}: {
+  trades: { userBook: Book; exchangeBooks: Book[] }[];
+}) {
   return (
     <div className="w-full overflow-y-auto my-10 flex flex-wrap gap-5 justify-center">
       {trades.map((trade) =>
-        trade.exchangeBooks.map((exchangeBook: Book) => (
+        trade.exchangeBooks?.map((exchangeBook: Book) => (
           <div
             key={`${trade.userBook.id}-${exchangeBook.id}`}
             className="flex flex-col space-y-3"
