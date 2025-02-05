@@ -3,5 +3,6 @@ export type Book = {
   title: string;
   thumbnail: string;
   isbn: string;
+  recommended?: boolean;
   genre: string[];
 };

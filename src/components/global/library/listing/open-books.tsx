@@ -63,8 +63,8 @@ export default function OpenBooks() {
     return (
       <div className="w-full h-[300px] my-10 justify-center flex flex-col items-center">
         <h5 className="max-w-[450px] text-center">
-          Once you add books to your shelf, they'll appear here, ready for other
-          readers to discover. Start listing and connect with fellow book
+          Once you add books to your shelf, they&apos;ll appear here, ready for
+          other readers to discover. Start listing and connect with fellow book
           lovers!
         </h5>
       </div>

@@ -16,7 +16,6 @@ export async function GET(): Promise<NextResponse> {
       { status: 401 }
     );
   }
-
   try {
     const books = await db
       .select({ isbn: Books.isbn, id: Books.id })
@@ -29,17 +28,48 @@ export async function GET(): Promise<NextResponse> {
 
     const isbnResolver = new Isbn();
 
+    const userBooks = await db
+      .select({ isbn: Books.isbn, id: Books.id })
+      .from(Books)
+      .where(eq(Books.kindeId, id));
+
+    // Fetch genres for user's books
+    const userGenresSet = new Set<string>();
+
+    await Promise.all(
+      userBooks.map(async (book) => {
+        try {
+          const data = await isbnResolver.resolve(book.isbn);
+          if (data?.categories) {
+            data.categories.forEach((genre: string) =>
+              userGenresSet.add(genre)
+            );
+          }
+        } catch (error) {
+          console.error(`Failed to fetch genres for ISBN: ${book.isbn}`, error);
+        }
+      })
+    );
+
+    const userGenres = Array.from(userGenresSet); // Convert Set to Array
+
     const booksWithDetails = await Promise.all(
       books.map(async (book) => {
         try {
           const data = await isbnResolver.resolve(book.isbn);
+          const bookGenres = data?.categories || [];
+
+          const recommended = bookGenres.some((genre) =>
+            userGenres.includes(genre)
+          );
 
           return {
             id: book.id,
             title: data?.title || "Unknown Title",
             thumbnail: data?.thumbnail || "",
             isbn: book.isbn,
-            genre: data?.categories || [],
+            genre: bookGenres,
+            recommended,
           };
         } catch (error) {
           console.error(
@@ -59,7 +89,7 @@ export async function GET(): Promise<NextResponse> {
   } catch (error) {
     console.error("Error fetching books:", error);
     return NextResponse.json(
-      { error: "Failed to retrieve books" },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

@@ -13,6 +13,7 @@ import { Book } from "@/db/types";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toaster } from "@/components/ui/toaster";
+import { Input } from "@/components/ui/input";
 
 let cachedBooks: Book[] | null = null;
 let cachedError: string | null = null;
@@ -73,8 +74,8 @@ export default function OpenBooks() {
     return (
       <div className="w-full h-[300px] my-10 flex flex-col items-center justify-center">
         <h5 className="max-w-[450px] text-center text-gray-500">
-          Once you add books to your shelf, they'll appear here, ready for other
-          readers to discover. Start listing and connect with fellow book
+          Once you add books to your shelf, they&apos;ll appear here, ready for
+          other readers to discover. Start listing and connect with fellow book
           lovers!
         </h5>
       </div>
@@ -104,6 +105,8 @@ function BookExchangeList({ availableBooks }: { availableBooks: Book[] }) {
 
     fetchUserBooks();
   }, []);
+
+  const [searchVal, setSearchVal] = useState("");
 
   const handleTradeSelect = (bookID: number, selectedBookID: number) => {
     setSelectedTrades((prev) => ({ ...prev, [bookID]: selectedBookID }));
@@ -142,49 +145,69 @@ function BookExchangeList({ availableBooks }: { availableBooks: Book[] }) {
   };
 
   return (
-    <div className="w-fit mx-auto my-10 grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-      {availableBooks.map((book) => (
-        <div
-          key={book.id}
-          className="flex flex-col items-center space-y-2 text-center w-full max-w-[200px] mx-auto"
-        >
-          <Image
-            src={book.thumbnail}
-            alt={book.title}
-            width={200}
-            height={250}
-            className="rounded-lg object-cover"
-          />
-          {userBooks.length > 0 && (
-            <Select
-              onValueChange={(value) =>
-                handleTradeSelect(book.id, Number(value))
-              }
+    <div className="w-fit flex flex-col items-center mx-auto my-10 space-y-10">
+      <Input
+        className="min-w-[300px] md:min-w-[500px] lg:min-w-[800px] full rounded-lg p-2 border dark:border-white border-black"
+        placeholder="Search Your Favorite Books..."
+        type="text"
+        value={searchVal}
+        onChange={(e) => setSearchVal(e.target.value)}
+      />
+      <div className="w-fit grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {availableBooks
+          .filter((book) =>
+            book?.title.toLowerCase().includes(searchVal.toLowerCase())
+          )
+          .map((book) => (
+            <div
+              key={book.id}
+              className=" flex flex-col items-center space-y-2 text-center w-full max-w-[200px] mx-auto"
             >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a book to trade" />
-              </SelectTrigger>
-              <SelectContent>
-                {userBooks.map((userBook) => (
-                  <SelectItem key={userBook.id} value={String(userBook.id)}>
-                    {userBook.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+              <div className="relative">
+                <Image
+                  src={book.thumbnail}
+                  alt={book.title}
+                  width={200}
+                  height={250}
+                  className="rounded-lg object-cover"
+                />
+                {book?.recommended && (
+                  <div className="bg-black dark:bg-white text-white dark:text-black bg-opacity-75 w-fit h-fit p-2 px-3 rounded-md absolute bottom-0 right-0 mb-2 mr-2">
+                    Recommended
+                  </div>
+                )}{" "}
+              </div>
+              {userBooks.length > 0 && (
+                <Select
+                  onValueChange={(value) =>
+                    handleTradeSelect(book.id, Number(value))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a book to trade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userBooks.map((userBook) => (
+                      <SelectItem key={userBook.id} value={String(userBook.id)}>
+                        {userBook.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
-          <Button
-            className="w-full mt-2"
-            disabled={!selectedTrades[book.id]}
-            onClick={() =>
-              handleTradeRequest(book.id, selectedTrades[book.id] as number)
-            }
-          >
-            Request Trade
-          </Button>
-        </div>
-      ))}
+              <Button
+                className="w-full mt-2"
+                disabled={!selectedTrades[book.id]}
+                onClick={() =>
+                  handleTradeRequest(book.id, selectedTrades[book.id] as number)
+                }
+              >
+                Request Trade
+              </Button>
+            </div>
+          ))}
+      </div>
     </div>
   );
 }
